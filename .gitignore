@@ -9,3 +9,5 @@ build
 Session.vim
 /models/*
 *.swp
+.idea/CopilotChatHistory.xml
+.idea/CopilotChatTabs.xml
