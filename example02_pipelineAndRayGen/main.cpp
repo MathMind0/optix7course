@@ -29,7 +29,7 @@ namespace osc {
     try {
       SampleRenderer sample;
 
-      const vec2i fbSize(vec2i(1200,1024));
+      const vec2i fbSize(vec2i(1024,1024));
       sample.resize(fbSize);
       sample.render();
 

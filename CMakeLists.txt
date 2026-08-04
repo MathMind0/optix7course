@@ -14,6 +14,12 @@
 # limitations under the License.                                           #
 # ======================================================================== #
 
+# Allow bundled sub-projects (e.g. 3rdParty/glfw) that declare
+# cmake_minimum_required(VERSION < 3.5) to configure under CMake 4.x.
+if (NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)

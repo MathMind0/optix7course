@@ -23,6 +23,12 @@ cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_CXX_STANDARD 11)
 
+# Default OptiX SDK location on this machine. Only used if neither the
+# OptiX_INSTALL_DIR CMake variable nor the OptiX_INSTALL_DIR env var is set.
+if (NOT OptiX_INSTALL_DIR AND NOT DEFINED ENV{OptiX_INSTALL_DIR})
+  set(OptiX_INSTALL_DIR "C:/ProgramData/NVIDIA Corporation/OptiX SDK 9.1.0")
+endif()
+
 find_package(OptiX REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 

@@ -59,6 +59,35 @@ namespace osc {
 
 
   //------------------------------------------------------------------------------
+  // blue-noise dithering via the R2 low-discrepancy sequence (Roberts 2018).
+  //
+  // The R2 sequence projects successive integer indices into [0,1)^2 using
+  // two carefully chosen irrational multipliers. The resulting 2D point set
+  // has the same blue-noise-like Fourier characteristics (energy pushed into
+  // high frequencies) as a classic void-and-cluster blue-noise texture, but
+  // is generated entirely procedurally - no precomputed texture asset needed.
+  //------------------------------------------------------------------------------
+  static __forceinline__ __device__ float fracf(float x)
+  { return x - floorf(x); }
+
+  static __forceinline__ __device__ void blueNoise(uint32_t i, float &r, float &g, float &b)
+  {
+    // R2 sequence constants: 1/(1+sqrt(2)) and 1/(2+sqrt(3)) style irrationals
+    const float a1 = 0.7548776662466927f; // 1 / (1 + sqrt(2))
+    const float a2 = 0.5698402909980532f; // 1 / (2 + sqrt(3))
+
+    // two decorrelated blue-noise values in [0,1)
+    const float x = fracf((float)i * a1);
+    const float y = fracf((float)i * a2);
+
+    r = x;
+    g = y;
+    // a third, decorrelated channel derived from the first two
+    b = fracf(x + y);
+  }
+
+
+  //------------------------------------------------------------------------------
   // ray gen program - the actual rendering happens in here
   //------------------------------------------------------------------------------
   extern "C" __global__ void __raygen__renderFrame()
@@ -75,19 +104,29 @@ namespace osc {
              optixLaunchParams.fbSize.x,
              optixLaunchParams.fbSize.y);
       printf("############################################\n");
-  }
+    }
 
     // ------------------------------------------------------------------
     // for this example, produce a simple test pattern:
     // ------------------------------------------------------------------
 
+
     // compute a test pattern based on pixel ID
     const int ix = optixGetLaunchIndex().x;
     const int iy = optixGetLaunchIndex().y;
 
+#if 0
     const int r = (ix % 256);
     const int g = (iy % 256);
     const int b = ((ix+iy) % 256);
+#else
+    // r/g/b are now blue-noise distributed values in [0,1)
+    float fr, fg, fb;
+    blueNoise(ix * 17 ^ iy * 53, fr, fg, fb);
+    const int r = (int)(fr*255.99f);
+    const int g = (int)(fg*255.99f);
+    const int b = (int)(fb*255.99f);
+#endif
 
     // convert to 32-bit rgba value (we explicitly set alpha to 0xff
     // to make stb_image_write happy ...

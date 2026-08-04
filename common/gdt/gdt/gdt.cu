@@ -17,3 +17,24 @@
 #include "gdt.h"
 #include "math/LinearSpace.h"
 #include "math/AffineSpace.h"
+
+#ifdef _WIN32
+// On Windows the console does not interpret ANSI escape sequences
+// (GDT_TERMINAL_*) unless virtual-terminal processing is enabled; otherwise
+// the ESC byte is printed literally (e.g. "?[1;32m"). Enable it once at
+// process startup. This is host code and runs whenever the gdt library is
+// linked into an executable.
+namespace {
+struct EnableConsoleColors {
+    EnableConsoleColors() {
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hOut == INVALID_HANDLE_VALUE || hOut == NULL) return;
+        DWORD mode = 0;
+        if (!GetConsoleMode(hOut, &mode)) return;
+        mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(hOut, mode);
+    }
+};
+static EnableConsoleColors g_enableConsoleColors;
+}
+#endif
