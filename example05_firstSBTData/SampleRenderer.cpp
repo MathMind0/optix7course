@@ -78,7 +78,7 @@ namespace osc {
 
 
     int indices[] = {0,1,3, 2,0,3,
-                     5,7,6, 5,6,4,
+                     5,6,7, 6,5,4,
                      0,4,5, 0,5,1,
                      2,3,7, 2,7,6,
                      1,5,7, 1,7,3,
@@ -112,6 +112,7 @@ namespace osc {
     createHitgroupPrograms();
 
     launchParams.traversable = buildAccel(model);
+    launchParams.light.dir = normalize(vec3f(1.f,-0.5f,0.2f));
 
     std::cout << "#osc: setting up optix pipeline ..." << std::endl;
     createPipeline();
