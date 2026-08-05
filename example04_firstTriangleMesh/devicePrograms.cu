@@ -88,7 +88,7 @@ namespace osc {
   {
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
     // set to constant white as background color
-    prd = vec3f(1.f);
+    prd = vec3f(0.1f);
   }
 
   //------------------------------------------------------------------------------
@@ -97,8 +97,7 @@ namespace osc {
   extern "C" __global__ void __raygen__renderFrame()
   {
     // compute a test pattern based on pixel ID
-    const int ix = optixGetLaunchIndex().x;
-    const int iy = optixGetLaunchIndex().y;
+    const int3 pos = optixGetLaunchIndex();
 
     const auto &camera = optixLaunchParams.camera;
 
@@ -112,7 +111,7 @@ namespace osc {
     packPointer( &pixelColorPRD, u0, u1 );
 
     // normalized screen plane position, in [0,1]^2
-    const vec2f screen(vec2f(ix+.5f,iy+.5f)
+    const vec2f screen(vec2f(pos.x+.5f,pos.y+.5f)
                        / vec2f(optixLaunchParams.frame.size));
     
     // generate ray direction
@@ -133,9 +132,9 @@ namespace osc {
                SURFACE_RAY_TYPE,             // missSBTIndex 
                u0, u1 );
 
-    const int r = int(255.99f*pixelColorPRD.x);
-    const int g = int(255.99f*pixelColorPRD.y);
-    const int b = int(255.99f*pixelColorPRD.z);
+    const int r = int(255.99f * pixelColorPRD.x);
+    const int g = int(255.99f * pixelColorPRD.y);
+    const int b = int(255.99f * pixelColorPRD.z);
 
     // convert to 32-bit rgba value (we explicitly set alpha to 0xff
     // to make stb_image_write happy ...
@@ -143,7 +142,7 @@ namespace osc {
       | (r<<0) | (g<<8) | (b<<16);
 
     // and write to frame buffer ...
-    const uint32_t fbIndex = ix+iy*optixLaunchParams.frame.size.x;
+    const uint32_t fbIndex = pos.x + pos.y * optixLaunchParams.frame.size.x;
     optixLaunchParams.frame.colorBuffer[fbIndex] = rgba;
   }
   
