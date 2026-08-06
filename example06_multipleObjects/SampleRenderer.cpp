@@ -113,6 +113,7 @@ namespace osc {
     createHitgroupPrograms();
 
     launchParams.traversable = buildAccel();
+    launchParams.light.dir = normalize(vec3f(1.f,-0.5f,0.2f));
 
     std::cout << "#osc: setting up optix pipeline ..." << std::endl;
     createPipeline();
@@ -140,45 +141,45 @@ namespace osc {
     // ==================================================================
     // triangle inputs
     // ==================================================================
-	std::vector<OptixBuildInput> triangleInput(meshes.size());
-  std::vector<CUdeviceptr> d_vertices(meshes.size());
-	std::vector<CUdeviceptr> d_indices(meshes.size());
-	std::vector<uint32_t> triangleInputFlags(meshes.size());
+	  std::vector<OptixBuildInput> triangleInput(meshes.size());
+    std::vector<CUdeviceptr> d_vertices(meshes.size());
+	  std::vector<CUdeviceptr> d_indices(meshes.size());
+	  std::vector<uint32_t> triangleInputFlags(meshes.size());
 
     for (int meshID=0;meshID<meshes.size();meshID++) {
-    // upload the model to the device: the builder
-    TriangleMesh &model = meshes[meshID];
-    vertexBuffer[meshID].alloc_and_upload(model.vertex);
-    indexBuffer[meshID].alloc_and_upload(model.index);
+      // upload the model to the device: the builder
+      TriangleMesh &model = meshes[meshID];
+      vertexBuffer[meshID].alloc_and_upload(model.vertex);
+      indexBuffer[meshID].alloc_and_upload(model.index);
 
-    triangleInput[meshID] = {};
-    triangleInput[meshID].type
-      = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+      triangleInput[meshID] = {};
+      triangleInput[meshID].type
+        = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
 
-    // create local variables, because we need a *pointer* to the
-    // device pointers
-    d_vertices[meshID] = vertexBuffer[meshID].d_pointer();
-    d_indices[meshID]  = indexBuffer[meshID].d_pointer();
+      // create local variables, because we need a *pointer* to the
+      // device pointers
+      d_vertices[meshID] = vertexBuffer[meshID].d_pointer();
+      d_indices[meshID]  = indexBuffer[meshID].d_pointer();
 
-    triangleInput[meshID].triangleArray.vertexFormat        = OPTIX_VERTEX_FORMAT_FLOAT3;
-    triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(vec3f);
-    triangleInput[meshID].triangleArray.numVertices         = (int)model.vertex.size();
-    triangleInput[meshID].triangleArray.vertexBuffers       = &d_vertices[meshID];
+      triangleInput[meshID].triangleArray.vertexFormat        = OPTIX_VERTEX_FORMAT_FLOAT3;
+      triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(vec3f);
+      triangleInput[meshID].triangleArray.numVertices         = (int)model.vertex.size();
+      triangleInput[meshID].triangleArray.vertexBuffers       = &d_vertices[meshID];
 
-    triangleInput[meshID].triangleArray.indexFormat         = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-    triangleInput[meshID].triangleArray.indexStrideInBytes  = sizeof(vec3i);
-    triangleInput[meshID].triangleArray.numIndexTriplets    = (int)model.index.size();
-    triangleInput[meshID].triangleArray.indexBuffer         = d_indices[meshID];
+      triangleInput[meshID].triangleArray.indexFormat         = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+      triangleInput[meshID].triangleArray.indexStrideInBytes  = sizeof(vec3i);
+      triangleInput[meshID].triangleArray.numIndexTriplets    = (int)model.index.size();
+      triangleInput[meshID].triangleArray.indexBuffer         = d_indices[meshID];
 
-    triangleInputFlags[meshID] = 0 ;
+      triangleInputFlags[meshID] = 0 ;
 
-    // in this example we have one SBT entry, and no per-primitive
-    // materials:
-    triangleInput[meshID].triangleArray.flags               = &triangleInputFlags[meshID];
-    triangleInput[meshID].triangleArray.numSbtRecords               = 1;
-    triangleInput[meshID].triangleArray.sbtIndexOffsetBuffer        = 0;
-    triangleInput[meshID].triangleArray.sbtIndexOffsetSizeInBytes   = 0;
-    triangleInput[meshID].triangleArray.sbtIndexOffsetStrideInBytes = 0;
+      // in this example we have one SBT entry, and no per-primitive
+      // materials:
+      triangleInput[meshID].triangleArray.flags               = &triangleInputFlags[meshID];
+      triangleInput[meshID].triangleArray.numSbtRecords               = 1;
+      triangleInput[meshID].triangleArray.sbtIndexOffsetBuffer        = 0;
+      triangleInput[meshID].triangleArray.sbtIndexOffsetSizeInBytes   = 0;
+      triangleInput[meshID].triangleArray.sbtIndexOffsetStrideInBytes = 0;
     }
     // ==================================================================
     // BLAS setup
