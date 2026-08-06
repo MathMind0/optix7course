@@ -76,7 +76,7 @@ namespace osc {
 
   struct CameraFrame {
     CameraFrame(const float worldScale)
-      : motionSpeed(worldScale * .01f)
+      : motionSpeed(worldScale * .1f)
     {
     }
     

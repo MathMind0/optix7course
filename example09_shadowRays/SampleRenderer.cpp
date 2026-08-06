@@ -73,6 +73,9 @@ namespace osc {
     createHitgroupPrograms();
 
     launchParams.traversable = buildAccel();
+    launchParams.light.dir       = normalize(vec3f(-.5f,.8f,0.1f));
+    launchParams.light.color     = vec3f(1.f, 0.95f, 0.85f);
+    launchParams.light.intensity = 5.f;
     
     std::cout << "#osc: setting up optix pipeline ..." << std::endl;
     createPipeline();
@@ -590,12 +593,12 @@ namespace osc {
         HitgroupRecord rec;
         OPTIX_CHECK(optixSbtRecordPackHeader(hitgroupPGs[rayID],&rec));
         rec.data.color   = mesh->diffuse;
-        if (mesh->diffuseTextureID >= 0) {
-          rec.data.hasTexture = true;
-          rec.data.texture    = textureObjects[mesh->diffuseTextureID];
-        } else {
-          rec.data.hasTexture = false;
-        }
+        rec.data.texture = (mesh->diffuseTextureID >= 0)
+          ? textureObjects[mesh->diffuseTextureID] : 0;
+        rec.data.normalMap = (mesh->normalMapTextureID >= 0)
+          ? textureObjects[mesh->normalMapTextureID] : 0;
+        rec.data.metallicRoughnessMap = (mesh->metallicRoughnessTextureID >= 0)
+          ? textureObjects[mesh->metallicRoughnessTextureID] : 0;
         rec.data.index    = (vec3i*)indexBuffer[meshID].d_pointer();
         rec.data.vertex   = (vec3f*)vertexBuffer[meshID].d_pointer();
         rec.data.normal   = (vec3f*)normalBuffer[meshID].d_pointer();
@@ -658,7 +661,7 @@ namespace osc {
   void SampleRenderer::resize(const vec2i &newSize)
   {
     // if window minimized
-    if (newSize.x == 0 | newSize.y == 0) return;
+    if (newSize.x == 0 || newSize.y == 0) return;
     
     // resize our cuda frame buffer
     colorBuffer.resize(newSize.x*newSize.y*sizeof(uint32_t));

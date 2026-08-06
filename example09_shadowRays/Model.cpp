@@ -172,7 +172,8 @@ namespace osc {
 
       std::set<int> materialIDs;
       for (auto faceMatID : shape.mesh.material_ids)
-        materialIDs.insert(faceMatID);
+        if (faceMatID != -1)
+          materialIDs.insert(faceMatID);
       
       
       for (int materialID : materialIDs) {
@@ -194,6 +195,16 @@ namespace osc {
                                                knownTextures,
                                                materials[materialID].diffuse_texname,
                                                modelDir);
+          // PBR Sponza stores normal map in map_Ka (ambient_texname)
+          mesh->normalMapTextureID = loadTexture(model,
+                                                 knownTextures,
+                                                 materials[materialID].ambient_texname,
+                                                 modelDir);
+          // PBR Sponza stores metallicRoughness in map_Ks (specular_texname)
+          mesh->metallicRoughnessTextureID = loadTexture(model,
+                                                knownTextures,
+                                                materials[materialID].specular_texname,
+                                                modelDir);
         }
 
         if (mesh->vertex.empty())

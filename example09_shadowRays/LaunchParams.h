@@ -31,8 +31,9 @@ namespace osc {
     vec3f *normal;
     vec2f *texcoord;
     vec3i *index;
-    bool                hasTexture;
     cudaTextureObject_t texture;
+    cudaTextureObject_t normalMap;
+    cudaTextureObject_t metallicRoughnessMap;
   };
   
   struct LaunchParams
@@ -48,6 +49,13 @@ namespace osc {
       vec3f horizontal;
       vec3f vertical;
     } camera;
+
+    struct
+    {
+      vec3f dir;
+      vec3f color;
+      float intensity;
+    } light;
 
     OptixTraversableHandle traversable;
   };

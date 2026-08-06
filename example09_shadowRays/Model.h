@@ -34,6 +34,8 @@ namespace osc {
     // material data:
     vec3f              diffuse;
     int                diffuseTextureID { -1 };
+    int                normalMapTextureID { -1 };
+    int                metallicRoughnessTextureID { -1 };
   };
 
   struct Texture {
