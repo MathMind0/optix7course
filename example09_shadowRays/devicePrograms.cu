@@ -95,9 +95,10 @@ namespace osc {
   
   extern "C" __global__ void __anyhit__shadow()
   {
-    vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    prd = vec3f(0.f);
-    optixTerminateRay();
+    // Unnecessary code - we terminate on first hit, see the trace flag of shadow ray.
+    //vec3f &prd = *(vec3f*)getPRD<vec3f>();
+    //prd = vec3f(0.f);
+    //optixTerminateRay();
   }
 
   //------------------------------------------------------------------------------
