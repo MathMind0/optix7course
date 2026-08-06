@@ -76,7 +76,7 @@ namespace osc {
 
   struct CameraFrame {
     CameraFrame(const float worldScale)
-      : motionSpeed(worldScale)
+      : motionSpeed(worldScale * .01f)
     {
     }
     
@@ -160,7 +160,7 @@ namespace osc {
       that should be more part of the manipulator widget(s), but
       since that same value is shared by multiple such widgets
       it's easiest to attach it to the camera here ...*/
-    float         motionSpeed   { 1.f };
+    float         motionSpeed   { 0.01f };
     
     /*! gets set to true every time a manipulator changes the camera
       values */
@@ -268,9 +268,9 @@ namespace osc {
       
   protected:
     CameraFrame *cameraFrame;
-    const float kbd_rotate_degrees        {  10.f };
+    const float kbd_rotate_degrees        {  5.f };
     const float degrees_per_drag_fraction { 150.f };
-    const float pixels_per_move           {  10.f };
+    const float pixels_per_move           {  5.f };
   };
 
 

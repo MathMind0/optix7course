@@ -59,36 +59,32 @@ namespace osc {
   // GGX PBR helper functions
   //------------------------------------------------------------------------------
 
-  // GGX / Trowbridge-Reitz normal distribution function
+  // GGX / Trowbridge-Reitz
+  // [Walter et al. 2007, "Microfacet models for refraction through rough surfaces"]
   static __forceinline__ __device__
   float D_GGX(float NdotH, float a)
   {
     float a2 = a*a;
-    float d  = (NdotH*NdotH * (a2-1.f) + 1.f);
-    return a2 / (3.14159265358979323846f * d*d);
+    float d  = 1.f - NdotH*NdotH * (1.f - a2); //d goes from a2 up to 1 while NdotH goes from 1 to 0.
+    return a2 / (M_PI * d*d); // D_GGX goes from 1 / (a2 * PI) down to a2.
   }
 
-  // Smith geometry function for a single direction
+  // Appoximation of joint Smith term for GGX
+  // [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
   static __forceinline__ __device__
-  float G1_SmithGGX(float NdotX, float a)
+  float Vis_SmithJointApprox( float a, float NoV, float NoL )
   {
-    // UE5 uses k = a^2/2  (height-correlated Smith)
-    float k = a*a / 2.f;
-    return NdotX / (NdotX * (1.f - k) + k);
-  }
-
-  // Height-correlated Smith geometry (multiply both directions)
-  static __forceinline__ __device__
-  float G_Smith(float NdotL, float NdotV, float a)
-  {
-    return G1_SmithGGX(NdotL, a) * G1_SmithGGX(NdotV, a);
+    float Vis_SmithV = NoL * ( NoV * ( 1 - a ) + a );
+    float Vis_SmithL = NoV * ( NoL * ( 1 - a ) + a );
+    return 0.5f * rcp( Vis_SmithV + Vis_SmithL );
   }
 
   // Schlick Fresnel approximation
   static __forceinline__ __device__
-  vec3f F_Schlick(float NdotV, vec3f F0)
+  vec3f F_Schlick(float VdotH, vec3f F0)
   {
-    return F0 + (vec3f(1.f) - F0) * powf(1.f - NdotV, 5.f);
+    float Fc = powf(1.f - VdotH, 5.f);
+    return Fc + (1.f - Fc) * F0; // F_Schlick goes from F0 up to 1 while VdotH goes from 1 to 0.
   }
     
   extern "C" __global__ void __closesthit__radiance()
@@ -152,7 +148,7 @@ namespace osc {
     }
 
     // ambient occlusion (default 1.0) - no separate AO texture in PBR Sponza
-    float ao = 0.1f;
+    float ao = 0.5f;
 
     // ------------------------------------------------------------------
     // normal map perturbation (tangent space)
@@ -192,8 +188,8 @@ namespace osc {
     // (vertex data, TBN frame, and normal map result are all in object space,
     //  but light dir, view dir, etc. are in world space)
     // ------------------------------------------------------------------
-    shadingN = normalize(vec3f(optixTransformNormalFromObjectToWorldSpace(
-      *(const float3*)&shadingN)));
+    shadingN = normalize(vec3f(
+      optixTransformNormalFromObjectToWorldSpace(shadingN)));
 
     // ------------------------------------------------------------------
     // PBR lighting: UE5-style GGX microfacet model
@@ -217,21 +213,20 @@ namespace osc {
     // surface reflectance at normal incidence (F0)
     // dielectrics = 0.04, metals take on the albedo color
     vec3f F0 = vec3f(0.04f);
-    F0 = F0 * (vec3f(1.f) - vec3f(metallic)) + albedo * vec3f(metallic);
+    F0 = F0 * (1.f - metallic) + albedo * metallic;
 
     // Cook-Torrance BRDF
     float D = D_GGX(NdotH, a);
-    float G = G_Smith(NdotL, NdotV, a);
+    float G = Vis_SmithJointApprox(a, NdotV, NdotL);
     vec3f F = F_Schlick(VdotH, F0);
 
-    vec3f specular = D * G * F / (4.f * NdotL * NdotV + 1e-5f);
+    vec3f specular = D * G * F;
 
     // diffuse: Lambertian scaled by energy conservation
-    vec3f kD = (vec3f(1.f) - F) * (vec3f(1.f) - vec3f(metallic));
-    vec3f diffuse = kD * albedo / 3.14159265358979323846f;
+    vec3f diffuse = (1.f - metallic) * albedo / M_PI;
 
     // final outgoing radiance
-    vec3f Lo = (diffuse + specular) * NdotL * lightColor + ao * albedo / 3.14159265358979323846f;
+    vec3f Lo = (diffuse + specular) * NdotL * lightColor + ao * albedo / M_PI;
 
     // write result
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
