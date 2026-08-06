@@ -72,6 +72,7 @@ namespace osc {
     createHitgroupPrograms();
 
     launchParams.traversable = buildAccel();
+    launchParams.light.dir = normalize(vec3f(1.f,-0.5f,0.2f));
     
     std::cout << "#osc: setting up optix pipeline ..." << std::endl;
     createPipeline();
@@ -547,12 +548,10 @@ namespace osc {
       // all meshes use the same code, so all same hit group
       OPTIX_CHECK(optixSbtRecordPackHeader(hitgroupPGs[0],&rec));
       rec.data.color   = mesh->diffuse;
-      if (mesh->diffuseTextureID >= 0) {
-        rec.data.hasTexture = true;
-        rec.data.texture    = textureObjects[mesh->diffuseTextureID];
-      } else {
-        rec.data.hasTexture = false;
-      }
+      rec.data.texture = (mesh->diffuseTextureID >= 0)
+        ? textureObjects[mesh->diffuseTextureID] : 0;
+      rec.data.normalMap = (mesh->normalMapTextureID >= 0)
+        ? textureObjects[mesh->normalMapTextureID] : 0;
       rec.data.index    = (vec3i*)indexBuffer[meshID].d_pointer();
       rec.data.vertex   = (vec3f*)vertexBuffer[meshID].d_pointer();
       rec.data.normal   = (vec3f*)normalBuffer[meshID].d_pointer();

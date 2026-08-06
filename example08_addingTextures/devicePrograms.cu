@@ -100,23 +100,64 @@ namespace osc {
     // available
     // ------------------------------------------------------------------
     vec3f diffuseColor = sbtData.color;
-    if (sbtData.hasTexture && sbtData.texcoord) {
-      const vec2f tc
-        = (1.f-u-v) * sbtData.texcoord[index.x]
-        +         u * sbtData.texcoord[index.y]
-        +         v * sbtData.texcoord[index.z];
+    vec2f tc;
+    if (sbtData.texture && sbtData.texcoord) {
+      tc = (1.f-u-v) * sbtData.texcoord[index.x]
+         +         u * sbtData.texcoord[index.y]
+         +         v * sbtData.texcoord[index.z];
       
       vec4f fromTexture = tex2D<float4>(sbtData.texture,tc.x,tc.y);
       diffuseColor *= (vec3f)fromTexture;
     }
     
     // ------------------------------------------------------------------
-    // perform some simple "NdotD" shading
+    // lighting: diffuse N·L, with optional normal map perturbation
     // ------------------------------------------------------------------
-    const vec3f rayDir = optixGetWorldRayDirection();
-    const float cosDN  = 0.2f + .8f*fabsf(dot(rayDir,N));
-    vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    prd = cosDN * diffuseColor;
+    const vec3f L = optixLaunchParams.light.dir;
+    vec3f shadingN = N;
+    if (sbtData.normalMap && sbtData.texcoord) {
+      // compute tangent and bitangent from triangle edges and UV deltas
+      const vec3f &A = sbtData.vertex[index.x];
+      const vec3f &B = sbtData.vertex[index.y];
+      const vec3f &C = sbtData.vertex[index.z];
+
+      const vec3f e1 = B - A;
+      const vec3f e2 = C - A;
+
+      const vec2f duv1 = sbtData.texcoord[index.y] - sbtData.texcoord[index.x];
+      const vec2f duv2 = sbtData.texcoord[index.z] - sbtData.texcoord[index.x];
+
+      const float invDet = 1.f / (duv1.x * duv2.y - duv1.y * duv2.x);
+      
+      vec3f T = (e1 * duv2.y - e2 * duv1.y) * invDet;
+      T = normalize(T - N * dot(N, T));   // Gram-Schmidt: make T orthogonal to N
+      const vec3f Bt = cross(N, T);       // bitangent (may need sign flip)
+
+      // transform light direction into tangent space
+      const vec3f Lts = vec3f(dot(T,  L),
+                               dot(Bt, L),
+                               dot(N,  L));
+
+      // sample normal map, decode [0,1] -> [-1,1], and shade
+      vec4f nmSample = tex2D<float4>(sbtData.normalMap, tc.x, tc.y);
+      shadingN = vec3f(2.f * nmSample.x - 1.f,
+                        2.f * nmSample.y - 1.f,
+                        2.f * nmSample.z - 1.f);
+      const float cosDN = 0.2f + .8f*clamp(dot(shadingN,Lts), 0.f, 1.f);
+
+      vec3f &prd = *(vec3f*)getPRD<vec3f>();
+      prd = cosDN * diffuseColor;
+      return;
+    }
+
+    // ------------------------------------------------------------------
+    // no normal map: shade with interpolated vertex normal
+    // ------------------------------------------------------------------
+    {
+      const float cosDN = 0.2f + .8f*clamp(dot(L,shadingN), 0.f, 1.f);
+      vec3f &prd = *(vec3f*)getPRD<vec3f>();
+      prd = cosDN * diffuseColor;
+    }
   }
   
   extern "C" __global__ void __anyhit__radiance()
@@ -136,7 +177,7 @@ namespace osc {
   {
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
     // set to constant white as background color
-    prd = vec3f(1.f);
+    prd = vec3f(0.2f, 0.3f, 0.9f);
   }
 
   //------------------------------------------------------------------------------

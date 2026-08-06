@@ -194,6 +194,10 @@ namespace osc {
                                                knownTextures,
                                                materials[materialID].diffuse_texname,
                                                modelDir);
+          mesh->normalMapTextureID = loadTexture(model,
+                                                 knownTextures,
+                                                 materials[materialID].bump_texname,
+                                                 modelDir);
         }
 
         if (mesh->vertex.empty())
