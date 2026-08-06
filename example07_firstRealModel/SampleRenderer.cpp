@@ -72,6 +72,7 @@ namespace osc {
     createHitgroupPrograms();
 
     launchParams.traversable = buildAccel();
+    launchParams.light.dir = normalize(vec3f(.5f,1.f,0.2f));
     
     std::cout << "#osc: setting up optix pipeline ..." << std::endl;
     createPipeline();

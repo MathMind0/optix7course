@@ -42,6 +42,11 @@ namespace osc {
       vec3f vertical;
     } camera;
 
+    struct
+    {
+      vec3f dir;
+    } light;
+
     OptixTraversableHandle traversable;
   };
 
