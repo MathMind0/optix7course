@@ -102,6 +102,7 @@ add_subdirectory(example08_addingTextures)
 add_subdirectory(example08a_PBR)
 add_subdirectory(example09_shadowRays)
 add_subdirectory(example10_softShadows)
+add_subdirectory(example10a_softShadowsDirectional)
 add_subdirectory(example11_denoiseColorOnly)
 add_subdirectory(example12_denoiseSeparateChannels)
 
