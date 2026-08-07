@@ -159,7 +159,12 @@ namespace osc {
     
       // trace shadow ray:
       const float NdotL = dot(lightDir,Ns);
-      if (NdotL >= 0.f) {
+      {
+        // NOTE: keep this optixTrace call UNCONDITIONAL. Guarding it with
+        // `if (NdotL >= 0.f)` makes the OptiX 9.1 JIT compiler (driver
+        // 610.88, CUDA 13.3 PTX) crash with exception 0xc0000409 inside
+        // optixModuleCreate. Tracing unconditionally and clamping the
+        // contribution below is equivalent and compiles fine.
         vec3f lightVisibility = 0.f;
         // the values we store the PRD pointer in:
         uint32_t u0, u1;
@@ -179,13 +184,13 @@ namespace osc {
                    | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
                    SHADOW_RAY_TYPE,            // SBT offset
                    RAY_TYPE_COUNT,               // SBT stride
-                   SHADOW_RAY_TYPE,            // missSBTIndex 
+                   SHADOW_RAY_TYPE,            // missSBTIndex
                    u0, u1 );
         pixelColor
           += lightVisibility
           *  optixLaunchParams.light.power
           *  diffuseColor
-          *  (NdotL / (lightDist*lightDist*numLightSamples));
+          *  (max(NdotL,0.f) / (lightDist*lightDist*numLightSamples));
       }
     }
     

@@ -57,6 +57,13 @@ namespace osc {
   SampleRenderer::SampleRenderer(const Model *model, const QuadLight &light)
     : model(model)
   {
+    // sanity-check that host-side LaunchParams stays in sync with the
+    // device-side layout (the same header is included by both, but
+    // MSVC and nvcc may produce different padding for nested structs).
+    // If this fires, the C++ struct does not match what the embedded
+    // PTX expects -- rebuild the project so the PTX is regenerated.
+    static_assert(sizeof(LaunchParams) == 128,
+                  "LaunchParams size mismatch with compiled PTX (expected 128)");
     initOptix();
 
     launchParams.light.origin = light.origin;
@@ -349,6 +356,7 @@ namespace osc {
     single .cu file, using a single embedded ptx string */
   void SampleRenderer::createModule()
   {
+    moduleCompileOptions = {};
     moduleCompileOptions.maxRegisterCount  = 50;
     moduleCompileOptions.optLevel          = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
     moduleCompileOptions.debugLevel        = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
@@ -361,6 +369,7 @@ namespace osc {
     pipelineCompileOptions.exceptionFlags     = OPTIX_EXCEPTION_FLAG_NONE;
     pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
       
+    pipelineLinkOptions = {};
     pipelineLinkOptions.maxTraceDepth          = 2;
       
     const std::string ptxCode = devicePrograms_ptx;
@@ -536,12 +545,12 @@ namespace osc {
 
     OPTIX_CHECK(optixPipelineSetStackSize
                 (/* [in] The pipeline to configure the stack size for */
-                 pipeline, 
+                 pipeline,
                  /* [in] The direct stack size requirement for direct
                     callables invoked from IS or AH. */
                  2*1024,
                  /* [in] The direct stack size requirement for direct
-                    callables invoked from RG, MS, or CH.  */                 
+                    callables invoked from RG, MS, or CH.  */
                  2*1024,
                  /* [in] The continuation stack requirement. */
                  2*1024,
@@ -664,7 +673,7 @@ namespace osc {
   void SampleRenderer::resize(const vec2i &newSize)
   {
     // if window minimized
-    if (newSize.x == 0 | newSize.y == 0) return;
+    if (newSize.x == 0 || newSize.y == 0) return;
     
     // resize our cuda frame buffer
     colorBuffer.resize(newSize.x*newSize.y*sizeof(uint32_t));
